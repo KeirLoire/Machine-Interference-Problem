@@ -1,143 +1,165 @@
 #include<ctime>
 using namespace std;
-using namespace eku;
 
-class machines{
+class Machines{
 	private:
-		int MC;
-		int target;
-		int workstations;
+		int MC = 0;
+		int target = 0;
+		int machineCount = 1;
 		int days;
 		int CL[6];
-		int queue;
-		int busy;
-		bool random;
-		string mode;
+		int queue = 0;
+		bool busy = false;
+
+		void Arrival();
+		void Departure();
+		void Display();
 	public:
-		machines(bool input);
-		void setworkstations(int input);
-		void setdays(int input);
-		void nextevent();
-		void arrival();
-		void departure();
-		void displaycolumn();
-		void displaycells();
+		Machines(bool isRandomRepairTime, int machineCount, int days);
+		void Start();
 };
 
-machines::machines(bool input){
-	MC = 0;
-	target = 0;
-	queue = 0;
-	busy = 0;
-	mode = "Default";
-	random = input;
-}
+Machines::Machines(bool isRandomRepairTime, int machineCount, int days)
+{
+	this->machineCount = machineCount;
+	this->days = days;
 
-void machines::setworkstations(int input){
-	workstations = input;
-	if(random){
+	// Randomize repair time values
+	if (isRandomRepairTime)
+	{
 		srand(time(0));
-		for(int i=0; i<5; i++){
-			CL[i] = rand() % 10;
+		for(int i = 0; i < 5; i++)
+		{
+			this->CL[i] = rand() % 10;
 		}
 	}
-	else{
-		CL[0] = 1;
-		CL[1] = 4;
-		CL[2] = 9;
-		CL[3] = 4;
-		CL[4] = 3;
-		CL[5] = 6;
+	else
+	{
+		this->CL[0] = 1;
+		this->CL[1] = 4;
+		this->CL[2] = 9;
+		this->CL[3] = 4;
+		this->CL[4] = 3;
+		this->CL[5] = 6;
 	}
 }
 
-void machines::setdays(int input){
-	days = input;
-}
+void Machines::Start()
+{
+	// Display reference
+	cout << endl << "MC = master clock";
+	cout << endl << "CLx = machines";
+	cout << endl << "CL" << this->machineCount + 1 << " = repairman completion time";
+	cout << endl << "n = queued machines";
+	cout << endl << "R = repairman status";
+	cout << endl << "i = machine being repaired";
 
-void machines::nextevent(){
-	while(MC <= days){
-		if(MC >= 11){
-			arrival();
-			departure();
-			mode = "Departure";
-			displaycells();
+	// Display header
+	cout << endl << endl << setw(6) << "MC";
+	for(int i = 0; i <= this->machineCount; i++){
+		cout << setw(6) << "CL" + to_string(i + 1);
+	}
+	cout << setw(5) << "n" << setw(6) << "R" << setw(6) << "i" << "\n";
+
+	// Display initial values
+	this->Display();
+
+	// Do while until MC reached maximum days
+	while (this->MC <= this->days)
+	{
+		if(this->MC >= 11)
+		{
+			// Fast track
+			this->Arrival();
+			this->Departure();
+			this->Display();
 		}
-		else{
-			if(queue<=1){
-				mode = "Arrival";
-				arrival();
-				displaycells();
+		else
+		{
+			if(this->queue <= 1)
+			{
+				this->Arrival();
+				this->Display();
 			}
-			else{
-				mode = "Departure";
-				departure();
-				displaycells();
+			else
+			{
+				this->Departure();
+				this->Display();
 			}	
 		}
 		
 	}
 }
 
-void machines::arrival(){
-	target = target + 1;
-	if(target > workstations){
-		target = 1;
+void Machines::Arrival()
+{
+	this->target++;
+	
+	if (this->target > this->machineCount)
+	{
+		this->target = 1;
 	}
-	for(int i=0; i<=workstations; i++){
-		if(target == i+1){
-			MC = CL[i];
-			CL[i] = 0;
+
+	for (int i = 0; i <= this->machineCount; i++)
+	{
+		if (this->target == i + 1)
+		{
+			this->MC = this->CL[i];
+			this->CL[i] = 0;
 		}
 	}
-	if(queue == 0){
-		busy = 1;
-		CL[workstations] = MC + 5;
-		queue = queue + 1;
+
+	if (this->queue == 0)
+	{
+		this->busy = true;
+		this->CL[this->machineCount] = this->MC + 5;
 	}
-	else{
-		queue = queue + 1;
+
+	this->queue++;
+}
+
+void Machines::Departure()
+{
+	this->MC = this->CL[this->machineCount];
+	this->queue--;
+
+	if (this->queue == 0)
+	{
+		this->busy = false;
+	}
+	else
+	{
+		this->CL[this->machineCount] = this->MC + 5;
+
+		if (this->target == 1)
+		{
+			this->CL[this->machineCount - 1] = this->MC + 10;
+		}
+		else
+		{
+			this->CL[this->target - 2] = this->MC + 10;
+		}
 	}
 }
 
-void machines::departure(){
-	MC = CL[workstations];
-	queue = queue - 1;
-	if(queue == 0){
-		busy = 0;
-	}
-	else{
-		CL[workstations] = MC + 5;
-		if(target == 1){
-			CL[workstations-1] = MC + 10;
-		}
-		else{
-			CL[target - 2] = MC + 10;
-		}
-	}
-}
+void Machines::Display(){
+	cout << setw(6) << this->MC;
 
-void machines::displaycolumn(){
-		cout<<yellow<<setw(4)<<"MC";
-	for(int i=0; i<=workstations; i++){
-		cout<<setw(6)<<"CL"<<i+1;
+	for (int i = 0; i <= this->machineCount; i++)
+	{
+		cout << setw(6) << this->CL[i];
 	}
-	cout<<setw(7)<<"n"<<setw(6)<<"R"<<setw(6)<<"i"<<setw(13)<<"Mode"<<green<<"\n";
-}
 
-void machines::displaycells(){
-	cout<<setw(6)<<white<<MC;
-	if(mode == "Arrival"){cout<<green;Beep(1000+MC, 200);}
-	else if(mode == "Departure"){cout<<red;Beep(1200+MC, 200);}
-	for(int i=0; i<= workstations; i++){
-		cout<<setw(6)<<CL[i];
+	cout << setw(5) << this->queue;
+
+	if (this->busy)
+	{
+		cout << setw(6) << "idle";
 	}
-	cout<<setw(7)<<queue<<setw(6);
-	if(busy == 0){
-		cout<<"idle";
+	else
+	{
+		cout << setw(6) << "busy";
 	}
-	else{
-		cout<<"busy";
-	}
-	cout<<setw(6)<<target<<setw(13)<<mode<<"\n";
+
+	cout << setw(6) << "CL" + to_string(this->target) << endl;
 }
